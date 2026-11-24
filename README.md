@@ -10,7 +10,7 @@ Aplicación web para la gestión integral de inventario, ventas, pedidos y distr
 - **Pedidos:** creación en cola FIFO, estados (pendiente → en camino → entregado, o cancelado), historial por pedido con línea de tiempo y despacho desde la bodega con stock más cercana.
 - **Logística:** grafo editable de conexiones entre central, bodegas y sucursales; consulta de rutas con Dijkstra (menor distancia) y BFS (menos tramos); seguimiento de entregas con kilómetros recorridos.
 - **Seguimiento:** bitácora de todos los movimientos, filtros, exportación CSV, deshacer operaciones (hasta 30 niveles) y respaldos JSON.
-- **Interfaz:** navegación superior (sin menú lateral), diseño responsive, tema claro/oscuro/automático, tablas con búsqueda, modales, notificaciones y estados vacíos. Textos e iconos en lugar de emojis.
+- **Interfaz:** navegación superior por categorías con menús desplegables al pasar el cursor (sin menú lateral), diseño responsive, tema claro/oscuro/automático, tablas con búsqueda, modales, notificaciones y estados vacíos. Textos e iconos en lugar de emojis.
 
 ## Requisitos
 

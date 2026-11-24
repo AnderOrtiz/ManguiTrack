@@ -27,18 +27,24 @@ const GROUPS = [
 
 const TITLES = Object.fromEntries(GROUPS.flatMap(g => g.items));
 
+const itemCount = id => id === "pedidos" ? pedidosPendientes().length
+    : id === "entregas" ? entregasActivas().length : 0;
+
 function nav() {
-    return GROUPS.map(group => `
-        <div class="nav-group">
-            <span class="nav-label">${esc(group.label)}</span>
-            ${group.items.map(([id, label]) => {
-                const count = id === "pedidos" ? pedidosPendientes().length
-                    : id === "entregas" ? entregasActivas().length : 0;
-                return `<button class="nav-item ${ui.section === id ? "active" : ""}" data-act="nav" data-section="${id}">
-                    ${esc(label)}${count ? `<span class="nav-count">${count}</span>` : ""}
-                </button>`;
-            }).join("")}
-        </div>`).join("");
+    return GROUPS.map(group => {
+        const active = group.items.some(([id]) => id === ui.section);
+        const count = group.items.reduce((sum, [id]) => sum + itemCount(id), 0);
+        return `<div class="nav-group ${active ? "active" : ""}">
+            <button class="nav-trigger" aria-haspopup="true" title="Mostrar opciones de ${esc(group.label)}">
+                ${esc(group.label)}${count ? `<span class="nav-count">${count}</span>` : ""}<span class="nav-caret" aria-hidden="true"></span>
+            </button>
+            <div class="nav-menu">
+                ${group.items.map(([id, label]) => `<button class="nav-item ${ui.section === id ? "active" : ""}" data-act="nav" data-section="${id}">
+                    ${esc(label)}${itemCount(id) ? `<span class="nav-count">${itemCount(id)}</span>` : ""}
+                </button>`).join("")}
+            </div>
+        </div>`;
+    }).join("");
 }
 
 function header() {
