@@ -1,37 +1,29 @@
 # ManguiTrack
 
-Prototipo de gestión integral de inventario, ventas y distribución de **Los Manguitos · Chivo NET**, construido con HTML, CSS y JavaScript puro, empaquetado con [Vite](https://vite.dev/).
+Aplicación web para la gestión integral de inventario, ventas, pedidos y distribución de **Los Manguitos · Chivo NET**. Construida con Vite y JavaScript vanilla (sin frameworks ni dependencias en tiempo de ejecución).
 
-Incluye catálogo indexado por SKU, existencias por ubicación, árbol de categorías, cálculo de rutas (Dijkstra y BFS), cola de pedidos FIFO y pila de deshacer LIFO.
+## Funcionalidades
+
+- **Productos e inventario:** CRUD de productos, categorías (árbol) y proveedores; existencias por ubicación; entradas y salidas con validación de stock y alertas de stock bajo.
+- **Bodegas y sucursales:** CRUD de ubicaciones (central, bodega, sucursal); control de existencias por ubicación; transferencias con validación de stock y cálculo de ruta.
+- **Clientes y ventas:** CRUD de clientes; ventas de varios productos con precios tomados del catálogo, cantidades, total e historial detallado.
+- **Pedidos:** creación en cola FIFO, estados (pendiente → en camino → entregado, o cancelado), historial por pedido con línea de tiempo y despacho desde la bodega con stock más cercana.
+- **Logística:** grafo editable de conexiones entre central, bodegas y sucursales; consulta de rutas con Dijkstra (menor distancia) y BFS (menos tramos); seguimiento de entregas con kilómetros recorridos.
+- **Seguimiento:** bitácora de todos los movimientos, filtros, exportación CSV, deshacer operaciones (hasta 30 niveles) y respaldos JSON.
+- **Interfaz:** navegación superior (sin menú lateral), diseño responsive, tema claro/oscuro/automático, tablas con búsqueda, modales, notificaciones y estados vacíos. Textos e iconos en lugar de emojis.
 
 ## Requisitos
 
-- [Node.js](https://nodejs.org/) 20.19+ o 22.12+ (se probó con v24.11.1)
-- npm 7+ (se probó con 11.6.2)
+- [Node.js](https://nodejs.org/) 20.19+ o 22.12+ (probado con v24.11.1)
+- npm 7+ (probado con 11.6.2)
 
-## Instalación
+## Instalación y uso
 
 ```bash
 npm install
-```
-
-## Uso
-
-```bash
-npm run dev      # inicia el servidor de desarrollo en http://localhost:5173
+npm run dev      # servidor de desarrollo en http://localhost:5173
 npm run build    # genera la versión de producción en dist/
-npm run preview  # sirve localmente el contenido de dist/
-```
-
-El servidor de desarrollo recarga la página automáticamente al guardar cambios en `src/index.html`, `src/index.js` o `src/styles.css`.
-
-Vite toma `src/` como raíz (configurado en `vite.config.js`) y deja el build en `dist/`, en la raíz del proyecto.
-
-Para probar la versión de producción:
-
-```bash
-npm run build
-npm run preview
+npm run preview  # sirve localmente dist/
 ```
 
 ## Estructura del proyecto
@@ -39,35 +31,44 @@ npm run preview
 ```
 ManguiTrack/
 ├── src/
-│   ├── index.html   # markup de la app; carga index.js como módulo
-│   ├── index.js     # datos, algoritmos, vistas y delegación de eventos
-│   └── styles.css   # estilos, variables de tema claro/oscuro y diseño responsive
-├── vite.config.js   # raíz en src/ y salida del build en ../dist
-├── package.json     # metadatos, scripts y dependencias
-├── package-lock.json # versiones exactas del árbol de dependencias
-├── .gitignore       # excluye node_modules/, dist/ y archivos locales
-├── node_modules/    # dependencias instaladas (no versionar)
-└── dist/            # salida de producción generada por npm run build (no versionar)
+│   ├── index.html        # cargador de la app, modal y contenedor de notificaciones
+│   ├── index.js          # punto de entrada: eventos globales y enrutamiento de acciones
+│   ├── state.js          # estado, localStorage, transacciones/deshacer, consultas y algoritmos
+│   ├── ui.js             # componentes: formularios, modales, tablas, toasts y tema
+│   ├── views.js          # navegación, resumen, catálogos, inventario y transferencias
+│   ├── views-op.js       # ventas, pedidos, entregas, rutas, bitácora y ajustes
+│   ├── actions-catalog.js# acciones de productos, categorías, proveedores, clientes y stock
+│   ├── actions-op.js     # acciones de carrito, ventas, pedidos, entregas y ajustes
+│   └── styles.css        # sistema de diseño, temas y media queries
+├── vite.config.js        # raíz en src/ y salida del build en ../dist
+├── package.json          # scripts y dependencias
+├── package-lock.json     # versiones exactas del árbol de dependencias
+├── .gitignore            # excluye node_modules/, dist/ y archivos locales
+├── node_modules/         # dependencias instaladas (no versionar)
+└── dist/                 # salida de producción (no versionar)
 ```
+
+Vite usa `src/` como raíz (configurado en `vite.config.js`), por lo que el build se genera en `dist/`, en la raíz del repositorio.
+
+## Datos y persistencia
+
+Los datos se guardan automáticamente en `localStorage` bajo la clave `manguitrack.v1` después de cada operación. No hay backend. En **Ajustes** puedes exportar/importar un respaldo JSON, restaurar los datos de ejemplo y cambiar el tema. El primer inicio carga un catálogo de demostración.
 
 ## Dependencias
 
-El proyecto no tiene dependencias en tiempo de ejecución: todo el funcionamiento es HTML, CSS y JavaScript nativo.
+No hay dependencias en tiempo de ejecución: todo es HTML, CSS y JavaScript nativo.
 
 | Dependencia | Tipo | Versión declarada | Versión instalada | Uso |
 | --- | --- | --- | --- | --- |
-| [vite](https://vite.dev/) | `devDependencies` | `^7.1.7` | `7.3.8` | Servidor de desarrollo, empaquetado y build de producción |
+| [vite](https://vite.dev/) | `devDependencies` | `^7.1.7` | `7.3.8` | Servidor de desarrollo y empaquetado |
 
-El `^` en la versión declarada permite actualizaciones compatibles dentro de la serie 7.x; `package-lock.json` fija la versión exacta instalada para que todos los entornos obtengan el mismo resultado.
-
-Para actualizar Vite a la última versión compatible:
-
-```bash
-npm update vite
-```
-
-Para verificar las dependencias instaladas:
+Para verificar o actualizar:
 
 ```bash
 npm ls
+npm update vite
 ```
+
+## Verificación
+
+Se validaron los flujos principales en un navegador real (Chrome headless): ventas con descuento de stock, creación/despacho/entrega/cancelación de pedidos, entradas y salidas, transferencias, rutas Dijkstra/BFS, CRUDs, deshacer, cambio de tema y persistencia tras recarga. El build de producción compila sin errores.
