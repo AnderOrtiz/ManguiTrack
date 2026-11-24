@@ -239,7 +239,7 @@ function viewTransferencias() {
             <div class="field"><label for="tr-to">Destino</label><select id="tr-to">${locOptions}</select></div>
             <div class="field"><label for="tr-prod">Producto</label><select id="tr-prod">${prodOptions}</select></div>
             <div class="field"><label for="tr-qty">Cantidad</label><input id="tr-qty" type="number" min="1" value="1"></div>
-        </div><div class="form-actions"><button class="btn primary" data-act="new-transfer"> Transferir</button></div>`)}
+        </div><div class="form-actions"><button class="btn primary" data-act="new-transfer">Transferir</button></div>`)}
         ${panel("Últimas transferencias", table(["Fecha", "Detalle", "Referencia"], historial) || empty("", "Sin transferencias", "Las transferencias aparecerán aquí."))}`;
 }
 

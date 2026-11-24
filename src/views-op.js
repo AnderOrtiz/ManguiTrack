@@ -67,7 +67,7 @@ function viewVentas() {
             <div class="field"><label for="sale-loc">Ubicación de despacho</label><select id="sale-loc">${locationOptions()}</select></div>
             <div class="field align-end"><small class="hint">Los precios se toman del catálogo al momento de la venta.</small></div>
         </div>${addCartForm()}${cartBlock()}
-        <div class="form-actions end"><button class="btn primary" data-act="new-sale"> Registrar venta</button></div>`)}
+        <div class="form-actions end"><button class="btn primary" data-act="new-sale">Registrar venta</button></div>`)}
         ${panel("Historial de ventas", `<div class="toolbar"><input class="search" type="search" placeholder="Buscar venta…" data-filter="ventas" value="${esc(ui.filters.ventas)}"></div>
         ${table(["ID", "Fecha", "Cliente", "Ubicación", "Productos", "Total", ""], rows) || empty("", "Sin ventas", "Registra la primera venta usando el carrito de arriba.")}`)}`;
 }
@@ -87,8 +87,8 @@ function viewPedidos() {
         <td>${statusBadge(o.status)}</td>
         <td class="row-actions">
             <button class="icon-btn" data-act="order-detail" data-id="${esc(o.id)}" title="Ver detalle">Ver</button>
-            ${o.status === "pendiente" ? `<button class="icon-btn" data-act="order-dispatch" data-id="${esc(o.id)}" title="Despachar"></button>` : ""}
-            ${o.status === "despachado" ? `<button class="icon-btn" data-act="order-deliver" data-id="${esc(o.id)}" title="Marcar entregado"></button>` : ""}
+            ${o.status === "pendiente" ? `<button class="btn sm primary" data-act="order-dispatch" data-id="${esc(o.id)}" title="Despachar pedido">Despachar</button>` : ""}
+            ${o.status === "despachado" ? `<button class="btn sm" data-act="order-deliver" data-id="${esc(o.id)}" title="Marcar entregado">Entregar</button>` : ""}
             ${!["entregado", "cancelado"].includes(o.status) ? `<button class="icon-btn danger" data-act="order-cancel" data-id="${esc(o.id)}" title="Cancelar">×</button>` : ""}
         </td></tr>`);
     const estados = [["todos", "Todos los estados"], ["pendiente", "Pendiente"], ["despachado", "En camino"], ["entregado", "Entregado"], ["cancelado", "Cancelado"]];
@@ -98,7 +98,7 @@ function viewPedidos() {
             <div class="field"><label for="order-dest">Destino</label><select id="order-dest">${locationOptions(l => l.type !== "bodega")}</select></div>
             <div class="field align-end"><small class="hint">El stock se descuenta al despachar, no al crear el pedido.</small></div>
         </div>${addCartForm()}${cartBlock()}
-        <div class="form-actions end"><button class="btn primary" data-act="new-order"> Crear pedido</button></div>`)}
+        <div class="form-actions end"><button class="btn primary" data-act="new-order">Crear pedido</button></div>`)}
         ${panel("Pedidos registrados", `<div class="toolbar">
             <input class="search" type="search" placeholder="Buscar pedido…" data-filter="pedidos" value="${esc(ui.filters.pedidos)}">
             <select data-filter="estado" class="filter-select">${estados.map(([v, l]) => `<option value="${v}" ${ui.filters.estado === v ? "selected" : ""}>${l}</option>`).join("")}</select>
@@ -118,8 +118,8 @@ function viewEntregas() {
         <td>${o.dispatchedAt ? esc(fmtDate(o.dispatchedAt)) : "—"}</td>
         <td class="row-actions">
             <button class="icon-btn" data-act="order-detail" data-id="${esc(o.id)}" title="Ver detalle">Ver</button>
-            ${o.status === "despachado" ? `<button class="icon-btn" data-act="order-deliver" data-id="${esc(o.id)}" title="Confirmar entrega"></button>
-            <button class="icon-btn danger" data-act="order-cancel" data-id="${esc(o.id)}" title="Cancelar">×</button>` : ""}
+            ${o.status === "despachado" ? `<button class="btn sm" data-act="order-deliver" data-id="${esc(o.id)}" title="Confirmar entrega">Entregar</button>
+            <button class="btn sm danger-ghost" data-act="order-cancel" data-id="${esc(o.id)}" title="Cancelar">Cancelar</button>` : ""}
         </td></tr>`);
     const kpis = [
         ["En camino", state.orders.filter(o => o.status === "despachado").length],
@@ -148,7 +148,7 @@ export function renderLogistica() {
         ${panel("Consultar ruta", `<div class="form-grid three">
             <div class="field"><label for="route-from">Origen</label><select id="route-from">${locOptions}</select></div>
             <div class="field"><label for="route-to">Destino</label><select id="route-to">${locOptions}</select></div>
-            <div class="field align-end"><button class="btn primary" data-act="calculate-route"> Calcular rutas</button></div>
+            <div class="field align-end"><button class="btn primary" data-act="calculate-route">Calcular rutas</button></div>
         </div><div id="route-result">${ui.route || ""}</div>`)}
         ${panel("Conexiones de la red", table(["Desde", "Hasta", "Distancia", ""], edgeRows) || empty("", "Sin conexiones", "Agrega tramos para calcular rutas."))}`;
 }
@@ -166,8 +166,8 @@ export function renderAuditoria(section) {
         <td>${badge(m.type, "soft")}</td><td>${esc(m.detail)}</td>
         <td><span class="mono">${esc(m.ref || "—")}</span></td></tr>`);
     return `${sectionHead("Bitácora", "Registro de todos los movimientos y operaciones", `
-        <button class="btn" data-act="undo"> Deshacer</button>
-        <button class="btn primary" data-act="export-csv"> Exportar CSV</button>`)}
+        <button class="btn" data-act="undo">Deshacer</button>
+        <button class="btn primary" data-act="export-csv">Exportar CSV</button>`)}
         ${panel("Historial de operaciones", `<div class="toolbar">
             <input class="search" type="search" placeholder="Buscar en la bitácora…" data-filter="bitacora" value="${esc(ui.filters.bitacora)}">
             <select data-filter="tipo" class="filter-select"><option value="todos">Todos los tipos</option>
@@ -185,10 +185,10 @@ function viewAjustes() {
                     <strong>${label}</strong></button>`).join("")}</div>`)}
             ${panel("Datos", `<p class="muted">Todo se almacena localmente con <strong>localStorage</strong>.</p>
                 <div class="stack">
-                    <button class="btn" data-act="export-json"> Exportar respaldo JSON</button>
-                    <button class="btn" data-act="import-click"> Importar respaldo</button>
+                    <button class="btn" data-act="export-json">Exportar respaldo JSON</button>
+                    <button class="btn" data-act="import-click">Importar respaldo</button>
                     <input type="file" id="import-file" accept="application/json,.json" hidden>
-                    <button class="btn danger-ghost" data-act="reset-demo"> Restaurar datos de ejemplo</button>
+                    <button class="btn danger-ghost" data-act="reset-demo">Restaurar datos de ejemplo</button>
                 </div>`)}
         </div>
         ${panel("Información", `<div class="list">
