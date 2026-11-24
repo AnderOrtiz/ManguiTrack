@@ -1,0 +1,133 @@
+// ===== DATOS DE EJEMPLO =====
+const LOC = { CEN: "Central", BN: "Bodega Norte", BS: "Bodega Sur", SS: "Suc. Soyapango", SM: "Suc. San Miguel", SA: "Suc. Santa Ana" };
+const BOD = ["CEN", "BN", "BS"];
+// DICCIONARIO: catálogo indexado por SKU (acceso O(1))
+const P = {
+    P01: { n: "Mango Tommy (caja)", c: "Tropicales", prov: "Finca El Sol", pr: 12.5 }, P02: { n: "Piña (unidad)", c: "Tropicales", prov: "Finca El Sol", pr: 1.8 },
+    P03: { n: "Limón (saco)", c: "Cítricos", prov: "Agro Cuscatlán", pr: 9 }, P04: { n: "Jugo de mango 1L", c: "Jugos", prov: "Néctares SV", pr: 2.2 },
+    P05: { n: "Jugo de naranja 1L", c: "Jugos", prov: "Néctares SV", pr: 2 }, P06: { n: "Mermelada de mango", c: "Conservas", prov: "Dulces del Valle", pr: 3.4 }
+};
+const CL = { C1: "Tienda La Esperanza", C2: "Restaurante El Zonte", C3: "Super Selectos Ilopango", C4: "Comedor Doña Rosa" };
+// DICCIONARIO ANIDADO: existencias por ubicación y SKU
+const S = {
+    CEN: { P01: 40, P02: 80, P03: 30, P04: 120, P05: 100, P06: 60 }, BN: { P01: 25, P02: 30, P03: 15, P04: 50, P05: 40, P06: 5 }, BS: { P01: 10, P02: 45, P03: 20, P04: 30, P05: 60, P06: 25 },
+    SS: { P01: 6, P02: 12, P03: 4, P04: 20, P05: 18, P06: 9 }, SM: { P01: 4, P02: 8, P03: 8, P04: 15, P05: 10, P06: 3 }, SA: { P01: 8, P02: 10, P03: 6, P04: 12, P05: 14, P06: 7 }
+};
+// ÁRBOL de categorías (n-ario)
+const T = { n: "Catálogo", h: [{ n: "Frutas frescas", h: [{ n: "Tropicales", sk: ["P01", "P02"] }, { n: "Cítricos", sk: ["P03"] }] }, { n: "Procesados", h: [{ n: "Jugos", sk: ["P04", "P05"] }, { n: "Conservas", sk: ["P06"] }] }] };
+// GRAFO no dirigido con pesos (km): lista de adyacencia
+const G = {}; function arc(a, b, k) { (G[a] = G[a] || {})[b] = k; (G[b] = G[b] || {})[a] = k }
+arc("CEN", "BN", 60); arc("CEN", "BS", 45); arc("CEN", "SS", 12); arc("BN", "SA", 40); arc("BN", "SS", 55); arc("BS", "SM", 70); arc("SS", "SM", 95);
+// LISTAS: ventas y kardex (historial) · COLA: pedidos · PILA: deshacer
+const ventas = [], kardex = [], cola = [], pila = []; let nV = 1, nP = 1;
+
+// ===== ALGORITMOS =====
+// Dijkstra: ruta de menor distancia
+function dij(a, b) {
+    const D = {}, pv = {}, Q = new Set(Object.keys(LOC)); Q.forEach(k => D[k] = Infinity); D[a] = 0;
+    while (Q.size) {
+        let u = null; Q.forEach(k => { if (u === null || D[k] < D[u]) u = k }); if (D[u] === Infinity) break; Q.delete(u); if (u === b) break;
+        for (const v in G[u]) { const x = D[u] + G[u][v]; if (x < D[v]) { D[v] = x; pv[v] = u } }
+    }
+    if (D[b] === Infinity) return null; const p = []; for (let x = b; x; x = pv[x])p.unshift(x); return { d: D[b], p }
+}
+// BFS con cola: ruta con menos tramos
+function bfs(a, b) {
+    const q = [[a]], vis = new Set([a]); while (q.length) {
+        const p = q.shift(), u = p[p.length - 1]; if (u === b) return p;
+        for (const v in G[u]) if (!vis.has(v)) { vis.add(v); q.push([...p, v]) }
+    } return null
+}
+// RECURSIVIDAD: existencias totales de una categoría y todas sus subcategorías
+function stockCat(n) { if (n.sk) return n.sk.reduce((s, k) => s + tot(k), 0); return n.h.reduce((s, x) => s + stockCat(x), 0) }
+function tot(k) { return Object.values(S).reduce((s, l) => s + (l[k] || 0), 0) }
+function arbol(n) { return `<li><b>${n.n}</b> <span class="chip">${stockCat(n)} uds</span>${n.sk ? "<br><small>" + n.sk.map(k => P[k].n).join(", ") + "</small>" : "<ul class='t'>" + n.h.map(arbol).join("") + "</ul>"}</li>` }
+
+// ===== OPERACIONES =====
+const $ = i => document.getElementById(i);
+function msg(t, ok = true) { const m = $("msg"); m.className = ok ? "ok" : "er"; m.textContent = t }
+function log(tipo, d) { kardex.unshift({ t: new Date().toLocaleTimeString("es-SV"), tipo, d }) }
+function mover(o, d, k, q) { S[o][k] -= q; S[d][k] = (S[d][k] || 0) + q }
+function qty(id) { const q = Number($(id).value); if (!Number.isInteger(q) || q <= 0) { msg("La cantidad debe ser un entero mayor que cero.", false); return null } return q }
+function entrada() {
+    const l = $("el").value, k = $("ek").value, q = qty("eq"); if (!q) return; S[l][k] = (S[l][k] || 0) + q;
+    log("Entrada", `${q} × ${P[k].n} en ${LOC[l]} (${P[k].prov})`); pila.push({ d: `Entrada ${k}`, u() { S[l][k] -= q } }); msg("Entrada registrada."); go(cur)
+}
+function vender() {
+    const l = $("vl").value, c = $("vc").value, k = $("vk").value, q = qty("vq"); if (!q) return;
+    if ((S[l][k] || 0) < q) return msg(`Existencias insuficientes: ${LOC[l]} tiene ${S[l][k] || 0} de ${P[k].n}.`, false);
+    S[l][k] -= q; const id = "V" + nV++; ventas.unshift({ id, c: CL[c], k, q, tot: q * P[k].pr, l });
+    log("Venta", `${id}: ${q} × ${P[k].n} a ${CL[c]} desde ${LOC[l]}`);
+    pila.push({ d: `Venta ${id}`, u() { S[l][k] += q; ventas.shift(); } }); msg(`Venta ${id} registrada por $${(q * P[k].pr).toFixed(2)}.`); go(cur)
+}
+function transferir() {
+    const o = $("to").value, d = $("td").value, k = $("tk").value, q = qty("tq"); if (!q) return;
+    if (o === d) return msg("Origen y destino deben ser distintos.", false);
+    if ((S[o][k] || 0) < q) return msg(`Existencias insuficientes en ${LOC[o]}.`, false);
+    const r = dij(o, d); if (!r) return msg("No existe ruta entre esas ubicaciones.", false);
+    mover(o, d, k, q); log("Transferencia", `${q} × ${P[k].n}: ${r.p.map(x => LOC[x]).join(" → ")} (${r.d} km)`);
+    pila.push({ d: `Transferencia ${k}`, u() { mover(d, o, k, q) } }); msg(`Transferencia hecha por ${r.d} km.`); go(cur)
+}
+function pedir() {
+    const c = $("pc").value, d = $("pd").value, k = $("pk").value, q = qty("pq"); if (!q) return;
+    const p = { id: "PD" + nP++, c: CL[c], d, k, q }; cola.push(p); log("Pedido", `${p.id} en cola: ${q} × ${P[k].n} para ${LOC[d]}`); msg(`Pedido ${p.id} en cola (posición ${cola.length}).`); go(cur)
+}
+function despachar() {
+    if (!cola.length) return msg("La cola está vacía: no hay pedidos por despachar.", false);
+    const p = cola[0]; let best = null;
+    BOD.forEach(o => { if ((S[o][p.k] || 0) >= p.q) { const r = dij(o, p.d); if (r && (!best || r.d < best.r.d)) best = { o, r } } });
+    if (!best) return msg(`${p.id} sigue en cola: ninguna bodega tiene ${p.q} × ${P[p.k].n}.`, false);
+    cola.shift(); mover(best.o, p.d, p.k, p.q);
+    log("Despacho", `${p.id}: desde ${LOC[best.o]} por ${best.r.p.map(x => LOC[x]).join(" → ")} (${best.r.d} km)`);
+    pila.push({ d: `Despacho ${p.id}`, u() { mover(p.d, best.o, p.k, p.q); cola.unshift(p) } });
+    msg(`${p.id} despachado desde ${LOC[best.o]} (${best.r.d} km).`); go(cur)
+}
+function deshacer() {
+    if (!pila.length) return msg("No hay operaciones para deshacer.", false);
+    const a = pila.pop(); a.u(); log("Reversión", a.d); msg(`Se revirtió: ${a.d}.`); go(cur)
+}
+function ruta() {
+    const a = $("ra").value, b = $("rb").value; if (a === b) return msg("Elige ubicaciones distintas.", false);
+    const d = dij(a, b), w = bfs(a, b); $("rr").innerHTML = d ? `<h3>Menor distancia (Dijkstra)</h3><p class="path">${d.p.map(x => `<b>${LOC[x]}</b>`).join(" → ")} · ${d.d} km</p>
+<h3>Menos tramos (BFS)</h3><p class="path">${w.map(x => LOC[x]).join(" → ")} · ${w.length - 1} tramo(s)</p>` : "<p>No hay ruta disponible.</p>"
+}
+
+// ===== VISTAS =====
+const sel = (id, o, f) => `<label>${id[1] === "l" || id === "to" || id === "td" || id === "pd" || id === "ra" || id === "rb" ? "Ubicación" : id.endsWith("k") ? "Producto" : "Cliente"}<select id="${id}">${Object.entries(o).map(([k, v]) => `<option value="${k}">${f(v)}</option>`).join("")}</select></label>`;
+const L = v => v, PN = v => v.n, Q = id => `<label>Cantidad<input id="${id}" type="number" min="1" value="1"></label>`;
+const tabs = {
+    inv: ["Inventario", () => `<h2>Inventario por ubicación</h2><p class="sub">Diccionario anidado ubicación → SKU. En rojo, existencias bajas (&lt; 8).</p><div class="tw"><table><tr><th>SKU</th><th>Producto</th>${Object.values(LOC).map(x => `<th>${x}</th>`).join("")}<th>Total</th></tr>
+${Object.keys(P).map(k => `<tr><td>${k}</td><td>${P[k].n}</td>${Object.keys(LOC).map(l => `<td class="${S[l][k] < 8 ? "low" : ""}">${S[l][k] || 0}</td>`).join("")}<td><b>${tot(k)}</b></td></tr>`).join("")}</table></div>
+<h3>Registrar entrada de proveedor</h3><div class="f">${sel("el", LOC, L)}${sel("ek", P, PN)}${Q("eq")}<button class="b" data-act="entrada">Registrar entrada</button></div>`],
+    ven: ["Ventas", () => `<h2>Registro de ventas</h2><p class="sub">Descuenta existencias de la ubicación elegida y guarda la venta en una lista.</p><div class="f">${sel("vl", LOC, L)}${sel("vc", CL, L)}${sel("vk", P, PN)}${Q("vq")}<button class="b" data-act="vender">Registrar venta</button></div>
+<div class="tw"><table><tr><th>ID</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Total</th><th>Ubicación</th></tr>${ventas.length ? ventas.map(v => `<tr><td>${v.id}</td><td>${v.c}</td><td>${P[v.k].n}</td><td>${v.q}</td><td>$${v.tot.toFixed(2)}</td><td>${LOC[v.l]}</td></tr>`).join("") : "<tr><td colspan=6>Aún no hay ventas. Registra la primera arriba.</td></tr>"}</table></div>`],
+    ped: ["Pedidos", () => `<h2>Pedidos y despacho</h2><p class="sub">Los pedidos entran a una cola. “Despachar siguiente” atiende el primero y elige la bodega con stock más cercana.</p><div class="f">${sel("pc", CL, L)}${sel("pd", Object.fromEntries(Object.entries(LOC).filter(([k]) => !BOD.includes(k))), L)}${sel("pk", P, PN)}${Q("pq")}<button class="b" data-act="pedir">Crear pedido</button></div>
+<div class="f"><button class="b" data-act="despachar">Despachar siguiente</button></div>
+<div class="tw"><table><tr><th>ID</th><th>Cliente</th><th>Destino</th><th>Producto</th><th>Cant.</th></tr>${cola.length ? cola.map(p => `<tr><td>${p.id}</td><td>${p.c}</td><td>${LOC[p.d]}</td><td>${P[p.k].n}</td><td>${p.q}</td></tr>`).join("") : "<tr><td colspan=5>No hay pedidos pendientes.</td></tr>"}</table></div>`],
+    tra: ["Transferencias", () => `<h2>Transferencias entre ubicaciones</h2><p class="sub">Mueve stock entre bodegas y sucursales; el sistema calcula la ruta más corta.</p><div class="f">${sel("to", LOC, L)}${sel("td", LOC, L)}${sel("tk", P, PN)}${Q("tq")}<button class="b" data-act="transferir">Transferir</button></div>`],
+    rut: ["Rutas", () => `<h2>Consulta de rutas</h2><p class="sub">Grafo con la central, bodegas y sucursales; las aristas llevan los kilómetros.</p><div class="f">${sel("ra", LOC, L)}${sel("rb", LOC, L)}<button class="b" data-act="ruta">Calcular rutas</button></div><div id="rr"></div>
+<h3>Tramos disponibles</h3><div class="tw"><table><tr><th>Desde</th><th>Conexiones (km)</th></tr>${Object.keys(G).map(a => `<tr><td>${LOC[a]}</td><td>${Object.entries(G[a]).map(([b, k]) => `<span class="chip">${LOC[b]} · ${k}</span>`).join("")}</td></tr>`).join("")}</table></div>`],
+    arb: ["Categorías", () => `<h2>Árbol de categorías</h2><p class="sub">Cada total se calcula con recursividad, sumando las subcategorías hasta llegar a los productos.</p><ul class="t">${arbol(T)}</ul>`],
+    kar: ["Bitácora", () => `<h2>Bitácora de operaciones</h2><p class="sub">Lista con todos los movimientos, del más reciente al más antiguo.</p><div class="f"><button class="b s" data-act="deshacer">Deshacer última operación</button></div>
+<div class="tw"><table><tr><th>Hora</th><th>Tipo</th><th>Detalle</th></tr>${kardex.length ? kardex.map(k => `<tr><td>${k.t}</td><td>${k.tipo}</td><td>${k.d}</td></tr>`).join("") : "<tr><td colspan=3>Todavía no hay movimientos.</td></tr>"}</table></div>`]
+};
+let cur = "inv";
+function go(t) {
+    cur = t; $("v").innerHTML = tabs[t][1]();
+    $("nav").innerHTML = Object.entries(tabs).map(([k, v]) => `<button class="${k === t ? "on" : ""}" data-act="go" data-tab="${k}">${v[0]}</button>`).join("") + `<button data-act="deshacer">Deshacer</button>`;
+    $("qv").innerHTML = cola.length ? cola.map((p, i) => `<span class="chip ${i ? "" : "first"}">${p.id}${i ? "" : " ← sale"}</span>`).join("") : "<small>Vacía</small>";
+    $("sv").innerHTML = pila.length ? [...pila].reverse().slice(0, 6).map((a, i) => `<div><span class="chip ${i ? "" : "first"}">${a.d}${i ? "" : " ← tope"}</span></div>`).join("") : "<small>Vacía</small>"
+}
+function msgOff() { $("msg").className = "" }
+
+// ===== EVENTOS (delegación: los botones se generan dinámicamente) =====
+document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-act]");
+    if (!btn) return;
+    const act = btn.dataset.act;
+    if (act === "go") { msgOff(); go(btn.dataset.tab); return; }
+    const acciones = { entrada, vender, pedir, despachar, transferir, ruta, deshacer };
+    acciones[act]?.();
+});
+
+go("inv");

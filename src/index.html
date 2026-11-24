@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>ManguiTrack – Los Manguitos</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+    <header>
+        <h1>ManguiTrack</h1>
+        <p>Gestión integral de inventario, ventas y distribución de Los Manguitos · prototipo de Chivo NET</p>
+    </header>
+    <nav id="nav"></nav>
+    <main>
+        <div>
+            <div id="msg" role="status"></div>
+            <section id="v"></section>
+        </div>
+        <aside>
+            <div class="box">
+                <h3>Cola de pedidos (FIFO)</h3>
+                <p class="tag">Sale primero el pedido más antiguo</p>
+                <div id="qv"></div>
+            </div>
+            <div class="box">
+                <h3>Pila de deshacer (LIFO)</h3>
+                <p class="tag">Se revierte primero la última operación</p>
+                <div id="sv"></div>
+            </div>
+        </aside>
+    </main>
+    <script type="module" src="./index.js"></script>
+</body>
+
+</html>
